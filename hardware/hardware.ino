@@ -8,12 +8,26 @@
 // IMPORT ALL REQUIRED LIBRARIES
 #include <rom/rtc.h>
 
+#include <Adafruit_GFX.h>
+#include <Adafruit_GrayOLED.h>
+#include <Adafruit_SPITFT.h>
+#include <Adafruit_SPITFT_Macros.h>
+#include <gfxfont.h>
 
+#include <NewPing.h>
+
+#include <PubSubClient.h>
+
+#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
+
+#include <Adafruit_ILI9341.h>
+
+#include <TFT.h>
 
 //IMPORT IMAGES
 #include "lockclose.h"
 #include "lockopen.h"
-
 
 #ifndef _WIFI_H 
 #include <WiFi.h>
@@ -32,10 +46,9 @@
 #include <Arduino.h>
 #endif 
  
-
-
 // DEFINE VARIABLES
-
+uint8_t currentDigit = 1; // Keeps track of the current digit being modified by the potentiometer
+bool lockState = false; // keeps track of the Open and Close state of the lock
 
 
 
@@ -47,14 +60,14 @@
 
 
 // MQTT CLIENT CONFIG  
-static const char* pubtopic      = "620012345";                    // Add your ID number here
-static const char* subtopic[]    = {"620012345_sub","/elet2415"};  // Array of Topics(Strings) to subscribe to
-static const char* mqtt_server   = "address or ip";         // Broker IP address or Domain name as a String 
+static const char* pubtopic      = "620162688";                    // Add your ID number here
+static const char* subtopic[]    = {"620162688_sub","/elet2415"};  // Array of Topics(Strings) to subscribe to
+static const char* mqtt_server   = "www.yanacreations.com";         // Broker IP address or Domain name as a String 
 static uint16_t mqtt_port        = 1883;
 
 // WIFI CREDENTIALS
-const char* ssid       = "YOUR_SSID"; // Add your Wi-Fi ssid
-const char* password   = "YOUR_PASS"; // Add your Wi-Fi password 
+const char* ssid       = "MonaConnect"; // Add your Wi-Fi ssid
+const char* password   = ""; // Add your Wi-Fi password 
 
 
 
@@ -97,19 +110,24 @@ void showLockState(void);
 
 
 /* Initialize class objects*/
+#define BTN_A 14
+#define BTN_B 15
+#define BTN_c 16
+#define CS 17
+#define DC 18
+#define RESET 19
+#define PM 20
 
-
-
- 
- 
 /* Declare your functions below */
-
-
 
 void setup() {
     Serial.begin(115200);  // INIT SERIAL  
  
-  
+    pinMode(CS,OUTPUT);
+    pinMode(DC,OUTPUT);
+    pinMode(RESET,OUTPUT);
+
+    tft.begin();
     
   // CONFIGURE THE ARDUINO PINS OF THE 7SEG AS OUTPUT
  
@@ -117,37 +135,72 @@ void setup() {
 
   initialize();           // INIT WIFI, MQTT & NTP 
   vButtonCheckFunction(); // UNCOMMENT IF USING BUTTONS THEN ADD LOGIC FOR INTERFACING WITH BUTTONS IN THE vButtonCheck FUNCTION
-
 }
   
-
-
 void loop() {
   // put your main code here, to run repeatedly: 
 
- 
+  digit1(0);
+  digit2(0);
+  digit3(0);
+  digit4(0);
 
+  pot = map(analogRead(PM),0,4095,0,9);
+  
+  if currentDigit == 1{
+    digit1(pot);
+  }
+  else if currentDigit == 2{
+    digit2(pot);
+  }
+  else if currentDigit == 3{
+    digit3(pot);
+  }
+  else{
+    digit4(pot);
+  }
+  
   vTaskDelay(1000 / portTICK_PERIOD_MS);  
 }
-
-
-
   
 //####################################################################
 //#                          UTIL FUNCTIONS                          #       
 //####################################################################
 void vButtonCheck( void * pvParameters )  {
-    configASSERT( ( ( uint32_t ) pvParameters ) == 1 );     
-      
+    configASSERT( ( ( uint32_t ) pvParameters ) == 1 );  
+    int stateA = HIGH;   
+    int stateB = HIGH;   
+    int stateC = HIGH;   
+
     for( ;; ) {
         // Add code here to check if a button(S) is pressed
-        // then execute appropriate function if a button is pressed  
+        // then execute appropriate function if a button is pressed
 
-        // 1. Implement button1  functionality
+        // 1. Implement button1  functionality  
+        if (digitalRead(BTN_A) == LOW && stateA == HIGH){
+          currentDigit += 1;
+          if currentDigit > 4{
+            currentDigit = 1;
+          }
+          Serial.println("button a pressed");
+        }
 
         // 2. Implement button2  functionality
+        if (digitalRead(BTN_B) == LOW && stateB == HIGH){
+          checkPasscode();
+          Serial.println("button b pressed");
+        }
 
         // 3. Implement button3  functionality
+        if (digitalRead(BTN_C) == LOW && stateC == HIGH){
+          lockState = false;
+          showLockState();
+          Serial.println("button c pressed");
+        }
+
+        stateA = digitalRead(BTN_A);
+        stateB = digitalRead(BTN_B);
+        stateC = digitalRead(BTN_C);
        
         vTaskDelay(200 / portTICK_PERIOD_MS);  
     }
@@ -159,7 +212,13 @@ void vUpdate( void * pvParameters )  {
     for( ;; ) {
           // Task code goes here.   
           // PUBLISH to topic every second.  
-            
+        JsonDocument doc;
+
+        char message[1100]  = {0};
+
+        doc["id"] = "620162688";
+        doc["timestamp"] = getTimeStamp();
+        
         vTaskDelay(1000 / portTICK_PERIOD_MS);  
     }
 }
@@ -184,13 +243,24 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // PRINT RECEIVED MESSAGE
   Serial.printf("Payload : %s \n",received);
-
  
   // CONVERT MESSAGE TO JSON
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, received);  
 
+  if (error) {
+    Serial.print("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
 
   // PROCESS MESSAGE
+  const char* type = doc["type"]; 
 
+  if (strcmp(type, "controls") == 0){
+    String status = doc["status"];
+    String data = doc["data"];
+  }
 }
 
 bool publish(const char *topic, const char *payload){   
@@ -214,44 +284,78 @@ bool publish(const char *topic, const char *payload){
 void digit1(uint8_t number){
   // CREATE BOX AND WRITE NUMBER IN THE BOX FOR THE FIRST DIGIT
   // 1. Set font to FreeSansBold18pt7b 
+  tft.setFont(&FreeSansBold9pt7b);  
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
+  tft.noStroke();
+  tft.fill(1,152,117);
+  tft.rect();
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
+  tft.setCursor(50,200);
   // 4. Set the text colour of the number. Use any colour you like 
+  tft.setTextColor(0,0,0);
   // 5. Set font size to one 
+  tft.setTextSize(1);
   // 6. Print number to the screen 
+  tft.printf(number);
 }
  
 void digit2(uint8_t number){
   // CREATE BOX AND WRITE NUMBER IN THE BOX FOR THE SECOND DIGIT
   // 1. Set font to FreeSansBold18pt7b 
+  tft.setFont(&FreeSansBold9pt7b);  
+  tft.setTextSize(1);
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
+  tft.noStroke();
+  tft.fill(1,152,117);
+  tft.rect();
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
+  tft.setCursor(50,200);
   // 4. Set the text colour of the number. Use any colour you like 
+  tft.setTextColor(0,0,0);
   // 5. Set font size to one 
+  tft.setTextSize(1);
   // 6. Print number to the screen 
+  tft.printf(number);
 }
 
 void digit3(uint8_t number){
   // CREATE BOX AND WRITE NUMBER IN THE BOX FOR THE THIRD DIGIT
   // 1. Set font to FreeSansBold18pt7b 
+  tft.setFont(&FreeSansBold9pt7b);  
+  tft.setTextSize(1);
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
+  tft.noStroke();
+  tft.fill(1,152,117);
+  tft.rect();
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
+  tft.setCursor(50,200);
   // 4. Set the text colour of the number. Use any colour you like 
+  tft.setTextColor(0,0,0);
   // 5. Set font size to one 
+  tft.setTextSize(1);
   // 6. Print number to the screen 
+  tft.printf(number);
 }
 
 void digit4(uint8_t number){
   // CREATE BOX AND WRITE NUMBER IN THE BOX FOR THE FOURTH DIGIT
   // 1. Set font to FreeSansBold18pt7b 
+  tft.setFont(&FreeSansBold9pt7b);  
+  tft.setTextSize(1);
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
+  tft.noStroke();
+  tft.fill(1,152,117);
+  tft.rect();
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
+  tft.setCursor(50,200);
   // 4. Set the text colour of the number. Use any colour you like 
+  tft.setTextColor(0,0,0);
   // 5. Set font size to one 
+  tft.setTextSize(1);
   // 6. Print number to the screen 
+  tft.printf(number);
 }
- 
- 
+  
 void checkPasscode(void){
     // THE APPROPRIATE ROUTE IN THE BACKEND COMPONENT MUST BE CREATED BEFORE THIS FUNCTION CAN WORK
     WiFiClient client;
@@ -267,7 +371,7 @@ void checkPasscode(void){
       char message[20];  // Store the 4 digit passcode that will be sent to the backend for validation via HTTP POST
       
       // 2. Insert all four (4) digits of the passcode into a string with 'passcode=1234' format and then save this modified string in the message[20] variable created above 
-       
+      message = "passcode=1234"; 
                       
       int httpResponseCode = http.POST(message);  // Send HTTP POST request and then wait for a response
 
@@ -277,14 +381,29 @@ void checkPasscode(void){
         String received = http.getString();
        
         // 3. CONVERT 'received' TO JSON. 
-        
+        JsonDocument doc;
+        serializeJson(doc, received);
 
         // 4. PROCESS MESSAGE. The response from the route that is used to validate the passcode
         // will be either {"status":"complete","data":"complete"}  or {"status":"failed","data":"failed"} schema.
         // (1) if the status is complete, set the lockState variable to true, then invoke the showLockState function
         // (2) otherwise, set the lockState variable to false, then invoke the showLockState function
-              
-      }     
+
+        const char* type = doc["type"]; 
+
+        if (strcmp(type, "controls") == 0){
+          String status = doc["status"];
+          String data = doc["data"];
+        }     
+
+        if (strcmp(status,"complete")){
+          lockState = true;
+          showLockState();
+        }
+        else{
+          lockState = false;
+          showLockState();
+        }
         
       // Free resources
       http.end();
@@ -292,8 +411,6 @@ void checkPasscode(void){
     }
              
  }
-
-
 
 void showLockState(void){
   
