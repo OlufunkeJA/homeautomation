@@ -8,6 +8,7 @@
 // IMPORT ALL REQUIRED LIBRARIES
 #include <rom/rtc.h>
 
+#include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_GrayOLED.h>
 #include <Adafruit_SPITFT.h>
@@ -22,8 +23,6 @@
 #include <ArduinoJson.hpp>
 
 #include <Adafruit_ILI9341.h>
-
-#include <TFT.h>
 
 //IMPORT IMAGES
 #include "lockclose.h"
@@ -112,32 +111,34 @@ void showLockState(void);
 
 
 /* Initialize class objects*/
-#define BTN_A 14
-#define BTN_B 15
-#define BTN_c 16
-#define btnDigit 17
-#define btnCheck 18
-#define btnUnlock 19
+#define BTN_A 15
+#define BTN_B 2
+#define BTN_c 21
+
+#define TFT_DC 17
+#define TFT_CS 5
+#define TFT_RST 16
+#define TFT_CLK 18
+#define TFT_MOSI 23
+#define TFT_MISO 19
+
 #define PM 20
+
+Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 /* Declare your functions below */
 
 void setup() {
     Serial.begin(115200);  // INIT SERIAL  
  
-    pinMode(btnDigit,INPUT_PULLUP);
-    pinMode(btnCheck,INPUT_PULLUP);
-    pinMode(btnUnlock,INPUT_PULLUP);
+    pinMode(BTN_A,INPUT_PULLUP);
+    pinMode(BTN_B,INPUT_PULLUP);
+    pinMode(BTN_C,INPUT_PULLUP);
 
     tft.begin();
     tft.setFont(&FreeSansBold9pt7b);  
     tft.fillScreen(ILI9341_WHITE);
-    tft.setTextColor(ILI9341_BLACK);
-    tft.setTextSize(1);
-    tft.fillRoundRect(5,260,50,50,5,ILI9341_GREEN);
-    tft.fillRoundRect(65,260,50,50,5,ILI9341_GREEN);
-    tft.fillRoundRect(125,260,50,50,5,ILI9341_GREEN);
-    tft.fillRoundRect(185,260,50,50,5,ILI9341_GREEN);   
+    tft.setTextColor(ILI9341_RED);
     
     digit1(0);
     digit2(0);
@@ -155,6 +156,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly: 
   pot = map(analogRead(PM),0,4095,0,9);
+  Serial.print(pot);
   
   if currentDigit == 1{
     digit1(pot);
@@ -270,7 +272,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   // PROCESS MESSAGE
   const char* type = doc["type"]; 
 
-  if (strcmp(type,"controls") == 0){
+  if (strcmp(type,"password") == 0){
     String status = doc["status"];
     String data = doc["data"];
   }
