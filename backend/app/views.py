@@ -9,7 +9,7 @@ This file creates your application.
 import site 
 
 from app import app, Config,  mongo, Mqtt
-from flask import escape, render_template, request, jsonify, send_file, redirect, make_response, send_from_directory 
+from flask import render_template, request, jsonify, send_file, redirect, make_response, send_from_directory 
 from json import dumps, loads 
 from werkzeug.utils import secure_filename
 from datetime import datetime,timedelta, timezone
@@ -17,6 +17,7 @@ from os import getcwd
 from os.path import join, exists
 from time import time, ctime
 from math import floor
+from markupsafe import escape
  
 
 
@@ -27,14 +28,90 @@ from math import floor
 
 
 # 1. CREATE ROUTE FOR '/api/set/combination'
-    
+@app.route('/api/set/combination', methods=['POST']) 
+def setCombination():
+    if request.method == "POST":
+        try:
+            form =  request.form
+
+            passcode = escape(form.get("passcode"))
+
+            if type(passcode) == int and len(passcode) == 4:
+                code = mongo.updatePW(passcode)
+            if code:
+                return jsonify({"status":"complete","data": "complete"})
+            
+        except Exception as e:
+            print(f"setCombination error: f{str(e)}")   
+
+    return jsonify({"status":"failed","data":"failed"}) 
+
+
 # 2. CREATE ROUTE FOR '/api/check/combination'
+@app.route('/api/check/combination', methods=['POST']) 
+def checkCombination():
+    if request.method == "POST":
+        try:
+            form = request.form
+            passcode = escape(form.get("passcode"))
+            pw = mongo.validate(passcode)
+
+            if pw:
+                return jsonify({"status":"complete","data":"complete"})
+            
+        except Exception as e:
+            print("checkCombination error ",str(e))
+    return jsonify({"status":"failed","data":"failed"})
+
 
 # 3. CREATE ROUTE FOR '/api/update'
+@app.route('/api/update', methods=['POST']) 
+def update():
+    if request.method == "POST":
+        try:
+            #add timestamp
+            #publish data
+            pub = mongo.publish(data)
+
+            if pub:
+                return jsonify({"status":"complete","data":"complete"})
+            
+        except Exception as e:
+            print("update error ", str(e))
+    return jsonify({"status":"failed","data":"failed"})
    
 # 4. CREATE ROUTE FOR '/api/reserve/<start>/<end>'
+@app.route('/api/reserve/<start>/<end>', methods=['GET']) 
+def reserve(start,end):   
+    if request.method == "GET": 
+        try:
+            data = mongo.reserveData(start,end)
+            Start = escape(start)
+            End = escape(end)
+
+            if data:
+                return jsonify({"status":"found","data": data})
+            
+        except Exception as e:
+            print(f"reserve error: f{str(e)}") 
+    return jsonify({"status":"failed","data":0})
+
 
 # 5. CREATE ROUTE FOR '/api/avg/<start>/<end>'
+@app.route('/api/avg/<start>/<end>', methods=['GET']) 
+def average(start,end):   
+    if request.method == "GET": 
+        try:
+            data = mongo.avg(start,end)
+            Start = escape(start)
+            End = escape(end)
+
+            if data:
+                return jsonify({"status":"found","data": data})
+            
+        except Exception as e:
+            print(f"get_humidity_mmar error: f{str(e)}") 
+    return jsonify({"status":"not found","data":0})
 
 
    

@@ -52,20 +52,66 @@ class DB:
     ####################
     
     # 1. CREATE FUNCTION TO INSERT DATA IN TO THE RADAR COLLECTION
+def insertRadar(self,data):
+    try:
+        remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+        result = remotedb.ELET2415.radar.insert_one(data)
+    except Exception as e:
+        print("insertRadar error", str(e))
 
-    
     # 2. CREATE FUNCTION TO RETRIEVE ALL DOCUMENTS FROM RADAR COLLECT BETWEEN SPECIFIED DATE RANGE. MUST RETURN A LIST OF DOCUMENTS
-
+def getRadar(self,start,end):
+    try:
+        remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+        result      = list(remotedb.ELET2415.radar.aggregate( [{ '$match': { 'timestamp': { '$gte': int(start), '$lte': int(end) } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
+#fix aggregation
+    except Exception as e:
+        msg = str(e)
+        print("getRadar error ",msg)            
+    else:                  
+        return result
 
     # 3. CREATE A FUNCTION TO COMPUTE THE ARITHMETIC AVERAGE ON THE 'reserve' FEILED/VARIABLE, USING ALL DOCUMENTS FOUND BETWEEN SPECIFIED START AND END TIMESTAMPS. RETURNS A LIST WITH A SINGLE OBJECT INSIDE
-    
+def avg(self,start,end):
+    try:
+        remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+        result      = list(remotedb.ELET2415.radar.aggregate( [{ '$match': { 'timestamp': { '$gte': int(start), '$lte': int(end) } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
+#fix aggregation
+    except Exception as e:
+        msg = str(e)
+        print("avg error ",msg)            
+    else:                  
+        return result
+
+def reserveData(self,start,end):
+    try:
+        remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+        result      = list(remotedb.ELET2415.radar.aggregate( [{ '$match': { 'timestamp': { '$gte': int(start), '$lte': int(end) } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
+#fix aggregation
+    except Exception as e:
+        print("reserveData error ", str(e))
     
     # 4. CREATE A FUNCTION THAT INSERT/UPDATE A SINGLE DOCUMENT IN THE 'code' COLLECTION WITH THE PROVIDED PASSCODE
-   
+def updatePW(self,pw):
+    try:
+        remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+        result = remotedb.ELET2415.code.find_one_and_update(pw)
+#find_one_and_update CRUD function
+    except Exception as e:
+        print("updatePW error ",str(e))
+
     
     # 5. CREATE A FUNCTION THAT RETURNS A COUNT, OF THE NUMBER OF DOCUMENTS FOUND IN THE 'code' COLLECTION WHERE THE 'code' FEILD EQUALS TO THE PROVIDED PASSCODE.
     #    REMEMBER, THE SCHEMA FOR THE SINGLE DOCUMENT IN THE 'code' COLLECTION IS {"type":"passcode","code":"0070"}
 
+def validate(self,pw):
+    try:
+          remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+          result = remotedb.ELET2415.code.count_documents(pw)
+#count_documents CRUD function    
+
+    except Exception as e:
+        print("validate eror ", str(e))
 
    
 
