@@ -73,9 +73,6 @@ void setup(){
 
   Serial.begin(115200); 
   // Configure GPIO pins here
-  pinMode(trigPin,OUTPUT);
-  pinMode(echoPin,INPUT_PULLUP);
- 
 
   espInit();  
  
