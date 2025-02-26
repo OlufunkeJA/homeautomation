@@ -63,8 +63,8 @@ def insertRadar(self,data):
 def getRadar(self,start,end):
     try:
         remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-        result      = list(remotedb.ELET2415.radar.aggregate( [{ '$match': { 'timestamp': { '$gte': int(start), '$lte': int(end) } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
-#fix aggregation
+        result = remotedb.ELET2415.radar.find({"timestamp": {"$gte": start, "$lte": end}, "reserve": {
+                                                  "$exists": True}}, {"_id": 0, "timestamp": 1, "reserve": 1, "waterheight": 1})
     except Exception as e:
         msg = str(e)
         print("getRadar error ",msg)            
@@ -75,7 +75,8 @@ def getRadar(self,start,end):
 def avg(self,start,end):
     try:
         remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-        result      = list(remotedb.ELET2415.radar.aggregate( [{ '$match': { 'timestamp': { '$gte': int(start), '$lte': int(end) } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
+        result      = remotedb.ELET2415.radar.aggregate([{"$match": {"timestamp": {"$gte": start, "$lte": end}}}, {
+                                                                "$group": {"_id": None, "average": {"$avg": "$reserve"}}}, {"$project": {"_id": 0, "average": 1}}])
 #fix aggregation
     except Exception as e:
         msg = str(e)
@@ -83,19 +84,20 @@ def avg(self,start,end):
     else:                  
         return result
 
-def reserveData(self,start,end):
+'''def reserveData(self,start,end):
     try:
         remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-        result      = list(remotedb.ELET2415.radar.aggregate( [{ '$match': { 'timestamp': { '$gte': int(start), '$lte': int(end) } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
+        result      = list(remotedb.ELET2415.radar.aggregate
 #fix aggregation
     except Exception as e:
-        print("reserveData error ", str(e))
+        print("reserveData error ", str(e))'''
     
     # 4. CREATE A FUNCTION THAT INSERT/UPDATE A SINGLE DOCUMENT IN THE 'code' COLLECTION WITH THE PROVIDED PASSCODE
 def updatePW(self,pw):
     try:
         remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-        result = remotedb.ELET2415.code.find_one_and_update(pw)
+        result = remotedb.ELET2415.code.find_one_and_update(
+                {}, {'$set': {'code': pw}}, upsert=True, projection={'_id': False})
 #find_one_and_update CRUD function
     except Exception as e:
         print("updatePW error ",str(e))
@@ -107,7 +109,7 @@ def updatePW(self,pw):
 def validate(self,pw):
     try:
           remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-          result = remotedb.ELET2415.code.count_documents(pw)
+          result = remotedb.ELET2415.code.count_documents({"code": pw})
 #count_documents CRUD function    
 
     except Exception as e:
