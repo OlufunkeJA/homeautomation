@@ -10,19 +10,19 @@ export const useAppStore =  defineStore('app', ()=>{
     computed() s become getters
     function() s become actions  
     */ 
-
-    // STATES 
-  
-
-
-    // ACTIONS
- 
    
+    const setPW = async (passcode) => {
+        const toast_status = {
+          title: "Passcode Update Request",
+          body: "Your passcode is attempting to update",
+          mode: "loader",
+        };
+    }
  
  
     return { 
     // EXPORTS	
-    
+      setPW,
         
-       }
+    };
 },{ persist: true  });
