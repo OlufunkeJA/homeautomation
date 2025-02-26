@@ -49,8 +49,10 @@
 // DEFINE VARIABLES
 uint8_t currentDigit = 1; // Keeps track of the current digit being modified by the potentiometer
 bool lockState = false; // keeps track of the Open and Close state of the lock
-
-
+uint8_t digit1 = 0;
+uint8_t digit2 = 0;
+uint8_t digit3 = 0;
+uint8_t digit4 = 0;
 
 // IMPORT FONTS FOR TFT DISPLAY
 #include <Fonts/FreeSansBold18pt7b.h>
@@ -113,9 +115,9 @@ void showLockState(void);
 #define BTN_A 14
 #define BTN_B 15
 #define BTN_c 16
-#define CS 17
-#define DC 18
-#define RESET 19
+#define btnDigit 17
+#define btnCheck 18
+#define btnUnlock 19
 #define PM 20
 
 /* Declare your functions below */
@@ -123,11 +125,24 @@ void showLockState(void);
 void setup() {
     Serial.begin(115200);  // INIT SERIAL  
  
-    pinMode(CS,OUTPUT);
-    pinMode(DC,OUTPUT);
-    pinMode(RESET,OUTPUT);
+    pinMode(btnDigit,INPUT_PULLUP);
+    pinMode(btnCheck,INPUT_PULLUP);
+    pinMode(btnUnlock,INPUT_PULLUP);
 
     tft.begin();
+    tft.setFont(&FreeSansBold9pt7b);  
+    tft.fillScreen(ILI9341_WHITE);
+    tft.setTextColor(ILI9341_BLACK);
+    tft.setTextSize(1);
+    tft.fillRoundRect(5,260,50,50,5,ILI9341_GREEN);
+    tft.fillRoundRect(65,260,50,50,5,ILI9341_GREEN);
+    tft.fillRoundRect(125,260,50,50,5,ILI9341_GREEN);
+    tft.fillRoundRect(185,260,50,50,5,ILI9341_GREEN);   
+    
+    digit1(0);
+    digit2(0);
+    digit3(0);
+    digit4(0);
     
   // CONFIGURE THE ARDUINO PINS OF THE 7SEG AS OUTPUT
  
@@ -139,25 +154,23 @@ void setup() {
   
 void loop() {
   // put your main code here, to run repeatedly: 
-
-  digit1(0);
-  digit2(0);
-  digit3(0);
-  digit4(0);
-
   pot = map(analogRead(PM),0,4095,0,9);
   
   if currentDigit == 1{
     digit1(pot);
+    digit1 = pot;
   }
   else if currentDigit == 2{
     digit2(pot);
+    digit2 = pot;
   }
   else if currentDigit == 3{
     digit3(pot);
+    digit3 = pot;
   }
   else{
     digit4(pot);
+    digit4 = pot;
   }
   
   vTaskDelay(1000 / portTICK_PERIOD_MS);  
@@ -257,7 +270,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   // PROCESS MESSAGE
   const char* type = doc["type"]; 
 
-  if (strcmp(type, "controls") == 0){
+  if (strcmp(type,"controls") == 0){
     String status = doc["status"];
     String data = doc["data"];
   }
@@ -286,13 +299,12 @@ void digit1(uint8_t number){
   // 1. Set font to FreeSansBold18pt7b 
   tft.setFont(&FreeSansBold9pt7b);  
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
-  tft.noStroke();
-  tft.fill(1,152,117);
+  tft.fillRoundRect(5,260,50,50,5,ILI9341_GREEN);
   tft.rect();
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
-  tft.setCursor(50,200);
+  tft.setCursor(140,295);
   // 4. Set the text colour of the number. Use any colour you like 
-  tft.setTextColor(0,0,0);
+  tft.setTextColor(ILI9341_BLACK);
   // 5. Set font size to one 
   tft.setTextSize(1);
   // 6. Print number to the screen 
@@ -305,13 +317,11 @@ void digit2(uint8_t number){
   tft.setFont(&FreeSansBold9pt7b);  
   tft.setTextSize(1);
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
-  tft.noStroke();
-  tft.fill(1,152,117);
-  tft.rect();
+  tft.fillRoundRect(65,260,50,50,5,ILI9341_GREEN);
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
-  tft.setCursor(50,200);
+  tft.setCursor(80,295);
   // 4. Set the text colour of the number. Use any colour you like 
-  tft.setTextColor(0,0,0);
+  tft.setTextColor(ILI9341_BLACK);
   // 5. Set font size to one 
   tft.setTextSize(1);
   // 6. Print number to the screen 
@@ -324,13 +334,11 @@ void digit3(uint8_t number){
   tft.setFont(&FreeSansBold9pt7b);  
   tft.setTextSize(1);
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
-  tft.noStroke();
-  tft.fill(1,152,117);
-  tft.rect();
+  tft.fillRoundRect(125,260,50,50,5,ILI9341_GREEN);
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
-  tft.setCursor(50,200);
+  tft.setCursor(140,295);
   // 4. Set the text colour of the number. Use any colour you like 
-  tft.setTextColor(0,0,0);
+  tft.setTextColor(ILI9341_BLACK);
   // 5. Set font size to one 
   tft.setTextSize(1);
   // 6. Print number to the screen 
@@ -343,13 +351,11 @@ void digit4(uint8_t number){
   tft.setFont(&FreeSansBold9pt7b);  
   tft.setTextSize(1);
   // 2. Draw a filled rounded rectangle close to the bottom of the screen. Give it any colour you like 
-  tft.noStroke();
-  tft.fill(1,152,117);
-  tft.rect();
+  tft.fillRoundRect(185,260,50,50,5,ILI9341_GREEN);
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
-  tft.setCursor(50,200);
+  tft.setCursor(200,295);
   // 4. Set the text colour of the number. Use any colour you like 
-  tft.setTextColor(0,0,0);
+  tft.setTextColor(ILI9341_BLACK);
   // 5. Set font size to one 
   tft.setTextSize(1);
   // 6. Print number to the screen 
